@@ -47,12 +47,12 @@
   window.plannerVerifyStudentPassword=async password=>{
     if(window.plannerCloudMode&&client&&navigator.onLine){const email=window.plannerUser?.email;if(!email)throw new Error('ไม่พบอีเมลบัญชีสำหรับยืนยันตัวตน');const {data,error:e}=await client.auth.signInWithPassword({email,password});if(e)throw new Error('รหัสผ่านไม่ถูกต้อง');await setCloudUser(data.user,password);return true}
     const id=window.plannerProfile?.id||window.plannerUser?.id;if(!id)throw new Error('ไม่พบบัญชีนักเรียนในเครื่องนี้');
-    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',4);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',5);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
     const account=await new Promise((resolve,reject)=>{const r=db.transaction('accounts','readonly').objectStore('accounts').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
     if(!account)throw new Error('ไม่พบบัญชีในเครื่องนี้');const salt=new Uint8Array(account.salt.match(/.{2}/g).map(x=>parseInt(x,16)));if(await digest(password,salt)!==account.hash)throw new Error('รหัสผ่านไม่ถูกต้อง');return true;
   };
   window.plannerChangeLocalStudentId=async(oldId,newId,profile)=>{
-    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',4);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',5);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
     const account=await new Promise((resolve,reject)=>{const r=db.transaction('accounts','readonly').objectStore('accounts').get(oldId);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
     if(!account)throw new Error('ไม่พบบัญชีออฟไลน์เดิม');account.id=newId;if(profile){account.name=profile.name;account.classCode=profile.classCode;account.rollNumber=profile.rollNumber||''}
     await new Promise((resolve,reject)=>{const t=db.transaction('accounts','readwrite');t.objectStore('accounts').put(account);if(oldId!==newId)t.objectStore('accounts').delete(oldId);t.oncomplete=resolve;t.onerror=()=>reject(t.error)});
@@ -96,7 +96,7 @@
         $('#loginName').value=window.plannerProfile.name;$('#loginStudentId').value=window.plannerProfile.id;$('#loginClass').value=window.plannerProfile.classCode||classCode;
       }else{
         if(!/^[0-9]{5}$/.test(id))throw new Error('กรุณากรอกรหัสนักเรียนเป็นตัวเลข 5 หลัก');
-        const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',4);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('accounts'))r.result.createObjectStore('accounts',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+        const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('StudentPlannerDB',5);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('accounts'))r.result.createObjectStore('accounts',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
         const accounts=await new Promise((resolve,reject)=>{const t=db.transaction('accounts','readonly'),r=t.objectStore('accounts').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});const account=accounts.find(x=>x.id===id);
         if(mode==='register'){
           if(account)throw new Error('รหัสนักเรียนนี้สมัครบัญชีไว้แล้ว กรุณาเข้าสู่ระบบ');if(accounts.length)throw new Error('เบราว์เซอร์นี้มีบัญชีอยู่แล้ว เพื่อป้องกันการปะปนของข้อมูลงาน บัญชีออฟไลน์รองรับหนึ่งบัญชีต่อเบราว์เซอร์');
